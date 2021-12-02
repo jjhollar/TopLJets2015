@@ -165,6 +165,16 @@ void createMiniEventTree(TTree *t,MiniEvent_t &ev,Int_t njecUncs)
   t->Branch("j_hadflav",     ev.j_hadflav,    "j_hadflav[nj]/I");
   t->Branch("j_pid",         ev.j_pid,        "j_pid[nj]/I");
 
+  // fat jet info
+  t->Branch("nj8",        &ev.nj8,        "nj8/I");
+  t->Branch("j8_pt",       ev.j8_pt,      "j8_pt[nj8]/F");
+  t->Branch("j8_eta",      ev.j8_eta,     "j8_eta[nj8]/F");
+  t->Branch("j8_phi",      ev.j8_phi,     "j8_phi[nj8]/F");
+  t->Branch("j8_mass",     ev.j8_mass,    "j8_mass[nj8]/F");
+  t->Branch("j8_tau1",     ev.j8_tau1,    "j8_tau1[nj8]/F");
+  t->Branch("j8_tau2",     ev.j8_tau2,    "j8_tau2[nj8]/F");
+
+
   //pf sums
   t->Branch("nchPV",        &ev.nchPV,         "nchPV/I");
   t->Branch("sumPVChPt",    &ev.sumPVChPt,     "sumPVChPt/F");
@@ -186,6 +196,8 @@ void createMiniEventTree(TTree *t,MiniEvent_t &ev,Int_t njecUncs)
   t->Branch("met_ptShifted",   ev.met_ptShifted,    "met_ptShifted[14]/F");
   t->Branch("met_phiShifted",   ev.met_phiShifted,    "met_phiShifted[14]/F");
   t->Branch("met_filterBits", &ev.met_filterBits, "met_filterBits/I");
+  t->Branch("met_px",      &ev.met_px,     "met_px/F");
+  t->Branch("met_py",      &ev.met_py,     "met_py/F");
 
   //CTPPS local tracks
   t->Branch("nppstrk",         &ev.nppstrk,          "nppstrk/S");
@@ -416,6 +428,8 @@ void attachToMiniEventTree(TTree *t,MiniEvent_t &ev,bool full)
   t->SetBranchAddress("met_ptShifted",   ev.met_ptShifted);
   t->SetBranchAddress("met_phiShifted",   ev.met_phiShifted);
   t->SetBranchAddress("met_filterBits", &ev.met_filterBits);
+  t->SetBranchAddress("met_px",    &ev.met_px);
+  t->SetBranchAddress("met_py",    &ev.met_py);
 
   //CTPPS local tracks
   t->SetBranchAddress("nppstrk",         &ev.nppstrk);

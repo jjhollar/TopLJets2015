@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 from FWCore.ParameterSet.VarParsing import VarParsing
 options = VarParsing ('python')
-options.register('runOnData', False,
+options.register('runOnData', True,
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.bool,
                  "Run this on real data"
@@ -27,12 +27,12 @@ options.register('noParticleLevel', False,
                  VarParsing.varType.bool,
                  "Do not run the particleLevel sequence"
                  )
-options.register('era', 'era2017',
+options.register('era', 'era2018',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "era to use (configurations defined in python/EraConfig.py)"
                  )
-options.register('outFilename', 'MiniEvents.root',
+options.register('outFilename', 'WTaggingScaleFactors_SingleMu2018.root',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "Output file name"
@@ -47,7 +47,9 @@ options.register('baseJetCollection','slimmedJets',
                  VarParsing.varType.string,
                  "Base jet collection"
                  )
-options.register('inputFile', None,
+#options.register('inputFile', '/store/data/Run2018D/SingleMuon/MINIAOD/UL2018_MiniAODv2-v3/130000/797BFF2E-CF9A-DB4C-A781-9A9999EE1C47.root',
+#options.register('inputFile', '/store/data/Run2018D/SingleMuon/MINIAOD/PromptReco-v2/000/325/170/00000/65255188-287A-DC44-8BEC-13B4E698FBBB.root',
+options.register('inputFile', '/store/data/Run2018C/SingleMuon/MINIAOD/17Sep2018-v1/270000/97A0B070-4858-E241-998D-19506CDFCDE9.root',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "input file to process"
@@ -81,7 +83,7 @@ options.parseArguments()
 
 #start process
 from Configuration.StandardSequences.Eras import eras
-process = cms.Process("MiniAnalysis", eras.Run2_2017)      
+process = cms.Process("MiniAnalysis", eras.Run2_2018)      
 
 #get the configuration to apply
 from TopLJets2015.TopAnalysis.EraConfig import getEraConfiguration
@@ -137,7 +139,8 @@ customizeJetTools(process=process,
 #message logger
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.threshold = ''
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 # set input to process
@@ -251,8 +254,44 @@ if options.runProtonFastSim:
       toSchedule.append(process.pps_reco_step)
       process.analysis.tagRecoProtons = cms.InputTag('ctppsProtonReconstructionOFDB')
 
-process.ana=cms.Path(process.analysis)
+# JH                                                                                                                                                           
+from JMEAnalysis.JetToolbox.jetToolbox_cff import jetToolbox
+#jetToolbox( process, 'ak8', 'jetSequence', 'out', PUMethod='CHS', addPruning=True )   ### For example                                                          
+jetToolbox( process, 'ak8', 'ak8JetSubs', 'noOutput',
+            PUMethod='CHS',
+            addPruning=True, addSoftDrop=False ,           # add basic grooming                                                                                                                      
+            addTrimming=False, addFiltering=False,
+            addPrunedSubjets=True, addSoftDropSubjets=False,
+            addNsub=True, maxTau=4,                       # add Nsubjettiness tau1, tau2, tau3, tau4                                                                                                 
+            #miniAOD = MINIAOD,                                                                                                                                                                      
+            dataTier = 'miniAOD',
+            runOnMC=False,
+            bTagDiscriminators = None,  # blank means default list of discriminators, None means none                                                                                                
+            bTagInfos = None,
+            subjetBTagDiscriminators = None,
+            subjetBTagInfos = None,
+            # added L1FastJet on top of the example config file                                                                                                                                      
+            JETCorrPayload = 'AK8PFchs', JETCorrLevels = ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']
+)
+
+
+#################################                                                                                                                              
+        ###  JET ID  ###                                                                                                                                       
+#################################                                                                                                                              
+from PhysicsTools.SelectorUtils.pfJetIDSelector_cfi import pfJetIDSelector
+process.slimmedJetsAK8JetId = cms.EDFilter("PFJetIDSelectionFunctorFilter",
+                                           filterParams = pfJetIDSelector.clone(),
+                                           src = cms.InputTag("slimmedJetsAK8"),                                                                              
+                                           #                                           src = cms.InputTag("packedPatJetsAK8PFCHSPrunedSubjets"),
+                                           filter = cms.bool(True)
+                                           )
+
+
+#process.ana=cms.Path(process.analysis)
+process.ana=cms.Path(process.slimmedJetsAK8JetId * process.analysis)
 toSchedule.append( process.ana )
                            
 process.schedule=cms.Schedule( (p for p in toSchedule) )
 print process.schedule
+
+#print process.dumpPython()

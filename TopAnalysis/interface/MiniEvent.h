@@ -67,8 +67,13 @@ struct MiniEvent_t
   Bool_t j_btag[200];
   Int_t j_vtxNtracks[200],j_flav[200],j_id[200],j_pid[200],j_hadflav[200],j_g[200];
 
+  // JH
+  Int_t nj8; 
+  Float_t j8_pt[200],j8_eta[200],j8_phi[200],j8_mass[200],j8_tau1[200],j8_tau2[200];
+  
+
   //met
-  Float_t met_pt,met_phi,met_sig;
+  Float_t met_pt,met_phi,met_sig,met_px,met_py;
   Float_t met_ptShifted[14],met_phiShifted[14];
   Int_t met_filterBits;
 

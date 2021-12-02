@@ -157,10 +157,14 @@ private:
   edm::EDGetTokenT<edm::View<pat::Electron>  >  electronToken_;
   edm::EDGetTokenT<edm::View<pat::Photon>  >  photonToken_;
   edm::EDGetTokenT<edm::View<pat::Jet> > jetToken_;
+  edm::EDGetTokenT<edm::View<pat::Jet> > fatjetToken_;
   edm::EDGetTokenT<pat::METCollection> metToken_;
   edm::EDGetTokenT<pat::PackedCandidateCollection> pfToken_;
   edm::EDGetTokenT<std::vector<CTPPSLocalTrackLite> > ctppsToken_;
   std::vector< edm::EDGetTokenT<std::vector<reco::ForwardProton> > > tokenRecoProtons_;
+
+  // JH
+  boost::shared_ptr<FactorizedJetCorrector> jecAK8_;
 
   //
   edm::EDGetTokenT<bool> BadChCandFilterToken_,BadPFMuonFilterToken_;
@@ -183,7 +187,7 @@ private:
   edm::Service<TFileService> fs;
 
   //counters
-  int nrecleptons_,nrecphotons_,ngleptons_,ngphotons_;
+  int nrecleptons_,nrecphotons_,ngleptons_,ngphotons_,nmet_,nbjet_;
 
   //apply filter to save tree
   bool applyFilt_;
@@ -225,6 +229,7 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
   rhoToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
   muonToken_(consumes<pat::MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   jetToken_(consumes<edm::View<pat::Jet> >(iConfig.getParameter<edm::InputTag>("jets"))),
+  fatjetToken_(consumes<edm::View<pat::Jet> >(iConfig.getParameter<edm::InputTag>("fatjets"))),
   metToken_(consumes<pat::METCollection>(iConfig.getParameter<edm::InputTag>("mets"))),
   pfToken_(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfCands"))),
   ctppsToken_(consumes<std::vector<CTPPSLocalTrackLite> >(iConfig.getParameter<edm::InputTag>("ctppsLocalTracks"))),
@@ -251,6 +256,27 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
     JetCorrectorParameters *p = new JetCorrectorParameters(jecUncFile,name.c_str());
     jecCorrectionUncs_.push_back(new JetCorrectionUncertainty(*p));
   }
+
+  //##KS                                                                                                                                
+  /* 2018D */
+  std::vector<std::string> jecAK8PayloadNames_;
+  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2Relative_AK8PFchs.txt");
+  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L3Absolute_AK8PFchs.txt");
+  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2L3Residual_AK8PFchs.txt");
+  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2Relative_AK8PFchs.txt");
+  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L3Absolute_AK8PFchs.txt");
+  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2L3Residual_AK8PFchs.txt");
+
+  std::vector<JetCorrectorParameters> vPar;
+  for ( std::vector<std::string>::const_iterator payloadBegin = jecAK8PayloadNames_.begin(),
+	  payloadEnd = jecAK8PayloadNames_.end(),
+	  ipayload = payloadBegin; ipayload != payloadEnd; ++ipayload ) {
+    JetCorrectorParameters pars(*ipayload);
+    vPar.push_back(pars);
+  }
+  // Make the FactorizedJetCorrector                                                                                                                                                                   
+  jecAK8_ = boost::shared_ptr<FactorizedJetCorrector> ( new FactorizedJetCorrector(vPar) );
+  // end JH
 
   muonRC_ = new RoccoR();
   muonRC_->init(iConfig.getParameter<std::string>("RoccoR"));
@@ -737,9 +763,9 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
 
       auto p4  = mu.p4() * sf;
 
-      //kinematics
-      bool passPt(p4.Pt() > 10);
-      bool passEta(fabs(p4.Eta()) < 2.5);
+      //kinematics - JH, from JME-16-003
+      bool passPt(p4.Pt() > 53);
+      bool passEta(fabs(p4.Eta()) < 2.1);
       if(!passPt || !passEta) continue;
 
       //ID
@@ -788,7 +814,8 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
 	}
       ev_.nl++;
 
-      if( p4.Pt()>20 && fabs(p4.Eta())<2.5 && isLoose) nrecleptons_++;
+      // JH
+      if( p4.Pt()>53 && fabs(p4.Eta())<2.1 && isLoose) nrecleptons_++;
     }
 
   // ELECTRON SELECTION: cf. https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2
@@ -1167,6 +1194,10 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
 	    }
 	}
 
+      // JH
+      if((ev_.j_deepcsv[ev_.nj] > 0.4168) && (ev_.j_pt[ev_.nj] > 30) && (fabs(ev_.j_eta[ev_.nj])< 2.4))
+        nbjet_++;
+
       ev_.nj++;
 
       //save all PF candidates central jet
@@ -1178,16 +1209,60 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
 	}
     }
 
+  // JH - AK8 CHS pruned selectedPatJetsAK8PFCHS                                                                                                    
+  ev_.nj8=0;
+  edm::Handle<edm::View<pat::Jet> > fatjets;
+  iEvent.getByToken(fatjetToken_,fatjets);
+  unsigned int collSize=fatjets->size();
+  double pruned_mass = 0.0;
+  double pruned_masscorr = 0;
+  double corr = 0;
+
+  double tau1 = 0.0;
+  double tau2 = 0.0;
+
+  for (unsigned int ijet=0; ijet<collSize; ijet++) 
+    {
+      pat::Jet fatjet = (*fatjets)[ijet];;
+      pruned_mass       = (*fatjets)[ijet].userFloat("ak8PFJetsCHSValueMap:ak8PFJetsCHSPrunedMass");
+      tau1              = (*fatjets)[ijet].userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1");
+      tau2              = (*fatjets)[ijet].userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau2");
+
+      LorentzVector uncorrJet = (*fatjets)[ijet].correctedP4(0);
+      jecAK8_->setJetEta( uncorrJet.eta() );
+      jecAK8_->setJetPt ( uncorrJet.pt() );
+      jecAK8_->setJetE  ( uncorrJet.energy() );
+      jecAK8_->setJetA  ( fatjet.jetArea() );
+      jecAK8_->setRho   ( rho );
+      jecAK8_->setNPV   ( vertices->size() );
+      corr = jecAK8_->getCorrection();
+      pruned_masscorr = corr*pruned_mass;
+
+      ev_.j8_pt[ev_.nj8] = fatjet.pt();
+      ev_.j8_eta[ev_.nj8] = fatjet.eta();
+      ev_.j8_phi[ev_.nj8] = fatjet.phi();
+      ev_.j8_mass[ev_.nj8] = pruned_masscorr;
+      ev_.j8_tau1[ev_.nj8] = tau1;
+      ev_.j8_tau2[ev_.nj8] = tau2;
+      ev_.nj8++;
+    }
+
   // MET
   edm::Handle<pat::METCollection> mets;
   iEvent.getByToken(metToken_, mets);
   ev_.met_pt  = mets->at(0).pt();
   ev_.met_phi = mets->at(0).phi();
   ev_.met_sig = mets->at(0).significance();
+  ev_.met_px  = mets->at(0).px();
+  ev_.met_py  = mets->at(0).py();
   for(size_t i=0; i<14; i++){
     ev_.met_ptShifted[i]  = mets->at(0).shiftedPt(pat::MET::METUncertainty(i));
     ev_.met_phiShifted[i] = mets->at(0).shiftedPhi(pat::MET::METUncertainty(i));
   }
+
+  // JH
+  if(ev_.met_pt > 40)
+    nmet_++;
 
   //MET filter bits
   ev_.met_filterBits=0;
@@ -1337,6 +1412,7 @@ void MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
   ngleptons_=0;   ngphotons_=0;
   nrecleptons_=0; nrecphotons_=0;
+  nmet_=0; nbjet_=0;
   ev_.g_nw=0; ev_.ng=0; ev_.ngtop=0;
   ev_.nl=0; ev_.ngamma=0; ev_.nj=0; ev_.nfwdtrk=0; ev_.nrawmu=0;
 
@@ -1346,7 +1422,8 @@ void MiniAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
   //save event if at least one object at gen or reco level
   if(applyFilt_)
-    if((ngleptons_==0 && ngphotons_==0 && nrecleptons_==0 && nrecphotons_==0) || !saveTree_) return;
+    //    if((ngleptons_==0 && ngphotons_==0 && nrecleptons_==0 && nrecphotons_==0 && nmet_==0) || !saveTree_) return;
+    if((nrecleptons_==0 || nmet_==0 || nbjet_==0)) return;
   ev_.run     = iEvent.id().run();
   ev_.lumi    = iEvent.luminosityBlock();
   ev_.event   = iEvent.id().event();
