@@ -1,5 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
+AK8JECERA = "2018C"
+
 from FWCore.ParameterSet.VarParsing import VarParsing
 options = VarParsing ('python')
 options.register('runOnData', True,
@@ -199,6 +201,8 @@ print 'MiniAnalyzer configuration is as follows:'
 process.analysis.saveTree  = cms.bool(options.saveTree)
 process.analysis.savePF    = cms.bool(options.savePF)
 process.analysis.applyFilt = cms.bool(options.applyFilt)
+process.analysis.fatJetJECEra = cms.string(AK8JECERA)
+
 print '\t save tree=',options.saveTree,' save PF=',options.savePF
 if 'era2017' in options.era:
       process.analysis.jetIdToUse=ANALYSISJETIDS[2017]

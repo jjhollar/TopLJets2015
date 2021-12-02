@@ -191,6 +191,8 @@ private:
 
   //apply filter to save tree
   bool applyFilt_;
+
+  string fatJetJECEra_;
 };
 
 //
@@ -237,7 +239,8 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
   BadPFMuonFilterToken_(consumes<bool>(iConfig.getParameter<edm::InputTag>("badPFMuonFilter"))),
   saveTree_( iConfig.getParameter<bool>("saveTree") ),
   savePF_( iConfig.getParameter<bool>("savePF") ),
-  applyFilt_( iConfig.getParameter<bool>("applyFilt") )
+  applyFilt_( iConfig.getParameter<bool>("applyFilt") ),
+  fatJetJECEra_ (iConfig.getParameter<string>("fatJetJECEra") )
 {
 
   tokenRecoProtons_.push_back( consumes<std::vector<reco::ForwardProton>>(iConfig.getParameter<InputTag>("tagRecoProtons")));
@@ -260,12 +263,30 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
   //##KS                                                                                                                                
   /* 2018D */
   std::vector<std::string> jecAK8PayloadNames_;
-  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2Relative_AK8PFchs.txt");
-  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L3Absolute_AK8PFchs.txt");
-  //  jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2L3Residual_AK8PFchs.txt");
-  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2Relative_AK8PFchs.txt");
-  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L3Absolute_AK8PFchs.txt");
-  jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2L3Residual_AK8PFchs.txt");
+  if(fatJetJECEra_ == "2018D")
+    {
+      jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2Relative_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L3Absolute_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunD_V19_DATA_L2L3Residual_AK8PFchs.txt");
+    }
+  if(fatJetJECEra_ == "2018C")
+    {
+      jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2Relative_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L3Absolute_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunC_V19_DATA_L2L3Residual_AK8PFchs.txt");
+    }
+  if(fatJetJECEra_ == "2018B")
+    {
+      jecAK8PayloadNames_.push_back("Autumn18_RunB_V19_DATA_L2Relative_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunB_V19_DATA_L3Absolute_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunB_V19_DATA_L2L3Residual_AK8PFchs.txt");
+    }
+  if(fatJetJECEra_ == "2018A")
+    {
+      jecAK8PayloadNames_.push_back("Autumn18_RunA_V19_DATA_L2Relative_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunA_V19_DATA_L3Absolute_AK8PFchs.txt");
+      jecAK8PayloadNames_.push_back("Autumn18_RunA_V19_DATA_L2L3Residual_AK8PFchs.txt");
+    }
 
   std::vector<JetCorrectorParameters> vPar;
   for ( std::vector<std::string>::const_iterator payloadBegin = jecAK8PayloadNames_.begin(),
