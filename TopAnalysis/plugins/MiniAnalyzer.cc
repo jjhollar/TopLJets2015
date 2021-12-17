@@ -220,7 +220,11 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
   puToken_(consumes<std::vector<PileupSummaryInfo>>(edm::InputTag("slimmedAddPileupInfo"))),
   genPhotonsToken_(consumes<std::vector<reco::GenParticle> >(edm::InputTag("particleLevel:photons"))),
   genLeptonsToken_(consumes<std::vector<reco::GenJet> >(edm::InputTag("particleLevel:leptons"))),
-  genJetsToken_(consumes<std::vector<reco::GenJet> >(edm::InputTag("particleLevel:jets"))),
+// JH
+//  genJetsToken_(consumes<std::vector<reco::GenJet> >(edm::InputTag("particleLevel:jets"))),
+//  genJetsoken_(consumes<reco::GenJetCollection>(edm::InputTag("slimmedGenJetsAK8"))),                                                                                               
+  genJetsToken_(consumes<reco::GenJetCollection>(edm::InputTag("ak8GenJets"))),
+// JH
   genMetsToken_(consumes<reco::METCollection>(edm::InputTag("particleLevel:mets"))),
   genParticlesToken_(consumes<pat::PackedGenParticleCollection>(edm::InputTag("packedGenParticles"))),
   prunedGenParticlesToken_(consumes<reco::GenParticleCollection>(edm::InputTag("prunedGenParticles"))),
@@ -480,7 +484,9 @@ void MiniAnalyzer::genAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
   //
   ev_.ng=0;
   edm::Handle<std::vector<reco::GenJet> > genJets;
+  // JH - AK8 gen jets
   iEvent.getByToken(genJetsToken_,genJets);
+  // end JH
   std::map<const reco::Candidate *,int> jetConstsMap;
   //edm::Handle<edm::ValueMap<float> > petersonFrag;
   //iEvent.getByToken(petersonFragToken_,petersonFrag);
@@ -1361,10 +1367,9 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
       ev_.j8_mass[ev_.nj8] = pruned_masscorr;
       ev_.j8_tau1[ev_.nj8] = tau1;
       ev_.j8_tau2[ev_.nj8] = tau2;
-      //      if(!(ev_.isData))
-      if(0)
+
+      if((fatJetJECEra_ == "2018MC") || (fatJetJECEra_ == "2017MC") || (fatJetJECEra_ == "2016MC"))
         {
-	  std::cout << "JH: Trying to do JER for AK8" << std::endl;
           resolution_ak8 = JME::JetResolution(jerAK8chsName_res_);
           resolution_ak8_sf = JME::JetResolutionScaleFactor(jerAK8chsName_sf_);
 	  JME::JetParameters parameters_ak8;
