@@ -70,7 +70,7 @@ struct MiniEvent_t
   // JH
   Int_t nj8; 
   Float_t j8_pt[200],j8_eta[200],j8_phi[200],j8_mass[200],j8_tau1[200],j8_tau2[200];
-  
+  Float_t j8_jersf[200], j8_jerres[200], j8_jersfup[200], j8_jersfdown[200];
 
   //met
   Float_t met_pt,met_phi,met_sig,met_px,met_py;

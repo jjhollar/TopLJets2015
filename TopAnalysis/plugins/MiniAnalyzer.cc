@@ -165,6 +165,8 @@ private:
 
   // JH
   boost::shared_ptr<FactorizedJetCorrector> jecAK8_;
+  std::string jerAK8chsName_res_ ;
+  std::string jerAK8chsName_sf_ ;
 
   //
   edm::EDGetTokenT<bool> BadChCandFilterToken_,BadPFMuonFilterToken_;
@@ -324,9 +326,11 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
     }
   if(fatJetJECEra_ == "2017B")
     {
+      std::cout << "Getting JEC for 2017B" << std::endl;
       jecAK8PayloadNames_.push_back("Fall17_17Nov2017B_V32_DATA_L2Relative_AK8PFchs.txt");
       jecAK8PayloadNames_.push_back("Fall17_17Nov2017B_V32_DATA_L3Absolute_AK8PFchs.txt");
       jecAK8PayloadNames_.push_back("Fall17_17Nov2017B_V32_DATA_L2L3Residual_AK8PFchs.txt");
+      std::cout << "Got JEC for 2017B" << std::endl;
     }
   if(fatJetJECEra_ == "2017MC")
     {
@@ -356,6 +360,23 @@ MiniAnalyzer::MiniAnalyzer(const edm::ParameterSet& iConfig) :
     {
       jecAK8PayloadNames_.push_back("Summer16_07Aug2017_V11_MC_L2Relative_AK8PFchs.txt");
       jecAK8PayloadNames_.push_back("Summer16_07Aug2017_V11_MC_L3Absolute_AK8PFchs.txt");
+    }
+  /* */
+  // Get JER smearing                                                                                                                                                           
+  if(fatJetJECEra_ == "2018MC")
+    {
+      jerAK8chsName_res_ = "Autumn18_V7b_MC_PtResolution_AK8PFchs.txt";
+      jerAK8chsName_sf_ = "Autumn18_V7b_MC_SF_AK8PFchs.txt";
+    }
+  if(fatJetJECEra_ == "2017MC")
+    {
+      jerAK8chsName_res_ = "Fall17_V3b_MC_PtResolution_AK8PFchs.txt";
+      jerAK8chsName_sf_ = "Fall17_V3b_MC_SF_AK8PFchs.txt";
+    }
+  if(fatJetJECEra_ == "2016MC")
+    {
+      jerAK8chsName_res_ = "Summer16_25nsV1_MC_PtResolution_AK8PFchs.txt";
+      jerAK8chsName_sf_ = "Summer16_25nsV1_MC_SF_AK8PFchs.txt";
     }
 
 
@@ -1331,12 +1352,36 @@ void MiniAnalyzer::recAnalysis(const edm::Event& iEvent, const edm::EventSetup& 
       corr = jecAK8_->getCorrection();
       pruned_masscorr = corr*pruned_mass;
 
+      JME::JetResolution resolution_ak8;
+      JME::JetResolutionScaleFactor resolution_ak8_sf;
+
       ev_.j8_pt[ev_.nj8] = fatjet.pt();
       ev_.j8_eta[ev_.nj8] = fatjet.eta();
       ev_.j8_phi[ev_.nj8] = fatjet.phi();
       ev_.j8_mass[ev_.nj8] = pruned_masscorr;
       ev_.j8_tau1[ev_.nj8] = tau1;
       ev_.j8_tau2[ev_.nj8] = tau2;
+      //      if(!(ev_.isData))
+      if(0)
+        {
+	  std::cout << "JH: Trying to do JER for AK8" << std::endl;
+          resolution_ak8 = JME::JetResolution(jerAK8chsName_res_);
+          resolution_ak8_sf = JME::JetResolutionScaleFactor(jerAK8chsName_sf_);
+	  JME::JetParameters parameters_ak8;
+	  parameters_ak8.setJetPt(fatjet.pt());
+	  parameters_ak8.setJetEta(fatjet.eta());
+	  parameters_ak8.setRho(rho);
+
+	  float jer_res= resolution_ak8.getResolution(parameters_ak8);
+	  float jer_sf = resolution_ak8_sf.getScaleFactor(parameters_ak8);
+	  float jer_sf_up = resolution_ak8_sf.getScaleFactor(parameters_ak8, Variation::UP);
+	  float jer_sf_down = resolution_ak8_sf.getScaleFactor(parameters_ak8, Variation::DOWN);
+
+	  ev_.j8_jersf[ev_.nj8] = jer_sf;
+	  ev_.j8_jerres[ev_.nj8] = jer_res;
+	  ev_.j8_jersfup[ev_.nj8] = jer_sf_up;
+	  ev_.j8_jersfdown[ev_.nj8] = jer_sf_down;
+	}
       ev_.nj8++;
     }
 

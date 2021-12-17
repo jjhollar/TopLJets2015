@@ -173,7 +173,10 @@ void createMiniEventTree(TTree *t,MiniEvent_t &ev,Int_t njecUncs)
   t->Branch("j8_mass",     ev.j8_mass,    "j8_mass[nj8]/F");
   t->Branch("j8_tau1",     ev.j8_tau1,    "j8_tau1[nj8]/F");
   t->Branch("j8_tau2",     ev.j8_tau2,    "j8_tau2[nj8]/F");
-
+  t->Branch("j8_jersf",    ev.j8_jersf,   "j8_jersf[nj8]/F");
+  t->Branch("j8_jerres",   ev.j8_jerres,  "j8_jerres[nj8]/F");
+  t->Branch("j8_jersfup",  ev.j8_jersfup, "j8_jersfup[nj8]/F");
+  t->Branch("j8_jersfdown",  ev.j8_jersfdown, "j8_jersfdown[nj8]/F");
 
   //pf sums
   t->Branch("nchPV",        &ev.nchPV,         "nchPV/I");
