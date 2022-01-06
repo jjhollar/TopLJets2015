@@ -578,6 +578,7 @@ Blah::Blah(TTree *tree) : fChain(0)
       // The following code should be used if you want this class to access a chain
       // of trees.
       TChain * chain = new TChain("analysis/data","");
+      chain->Add("/eos/cms/store/user/jjhollar/WTaggingScaleFactors_SingleMu2018/SingleMuon/WTaggingScaleFactors_SingleMu2018A/WTaggingScaleFactors_SingleMu2018A_merge.root/analysis/data");
       chain->Add("/eos/cms/store/user/jjhollar/WTaggingScaleFactors_SingleMu2018/SingleMuon/WTaggingScaleFactors_SingleMu2018B/WTaggingScaleFactors_SingleMu2018B_merge.root/analysis/data");
       chain->Add("/eos/cms/store/user/jjhollar/WTaggingScaleFactors_SingleMu2018/SingleMuon/WTaggingScaleFactors_SingleMu2018C/WTaggingScaleFactors_SingleMu2018C_merge.root/analysis/data");
       chain->Add("/eos/cms/store/user/jjhollar/WTaggingScaleFactors_SingleMu2018/SingleMuon/WTaggingScaleFactors_SingleMu2018/WTaggingScaleFactors_SingleMu2018D_merge.root/analysis/data");

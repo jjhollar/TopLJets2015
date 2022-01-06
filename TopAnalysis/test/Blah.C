@@ -37,19 +37,20 @@ void Blah::Loop()
 
    std::cout << "Entries = " << nent << std::endl;
 
-   TLorentzVector mu, met, nu, bjet, fatjet, wlep, whad; 
+   TLorentzVector mu, met, nu, bjet, fatjet, wlep, whad, genak8jet; 
 
    TH1F *h1 = new TH1F("h1","h1",40,0,200);
    TH1F *h2 = new TH1F("h2","h2",40,0,200);
 
    float SelectedJet_tau21_ddt, SelectedJet_mass,SelectedJet_pt,dr_LepJet,dphi_MetJet;
-   int HLT_Mu50;
+   int HLT_Mu50, genmatchedAK8;
 
-   TFile *fx = new TFile("WTaggingSkim_SingleMu_2018CD.root","RECREATE");
+   TFile *fx = new TFile("WTaggingSkim_SingleMu_2018CABCD.root","RECREATE");
    TTree *mytree = new TTree("mytree","Example fitter tree");
    mytree->Branch("SelectedJet_tau21_ddt",&SelectedJet_tau21_ddt,"SelectedJet_tau21_ddt/F");
    mytree->Branch("SelectedJet_mass",&SelectedJet_mass,"SelectedJet_mass/F");
    mytree->Branch("SelectedJet_pt",&SelectedJet_pt,"SelectedJet_pt/F");
+   mytree->Branch("genmatchedAK8",&genmatchedAK8,"genmatchedAK8/I");
    mytree->Branch("dr_LepJet",&dr_LepJet,"dr_LepJet/F");
    mytree->Branch("dphi_MetJet",&dphi_MetJet,"dphi_MetJet/F");
    mytree->Branch("HLT_Mu50",&HLT_Mu50,"HLT_Mu50/I");
@@ -96,6 +97,7 @@ void Blah::Loop()
       float neutrinopz = 0.0;
       float met_px = met_pt * TMath::Cos(met_phi);
       float met_py = met_pt * TMath::Sin(met_phi);
+      genmatchedAK8 = 0;
 
       neutrinopz = recoverNeutrinoPz(mu, met);
       nu.SetPxPyPzE(met_px,met_py,neutrinopz,TMath::Sqrt(met_px*met_px + met_py*met_py + neutrinopz*neutrinopz)); 
@@ -111,14 +113,22 @@ void Blah::Loop()
       HLT_Mu50 = 1;
       SelectedJet_mass = j8_mass[0];
       SelectedJet_tau21_ddt = taut21ddt1;
+      SelectedJet_pt = j8_pt[0];
       dr_LepJet = deltarlepjet;
 
       if(fabs(dr_LepJet) <= 1.570)
 	continue;
       if(fabs(dphi_MetJet) <= 2.09)
 	continue;
+      
+      for(Int_t gj = 0; gj < ng; gj++)
+	{
+	  genak8jet.SetPtEtaPhiM(g_pt[gj],g_eta[gj],g_phi[gj],g_m[gj]);
+	  float drgen = DeltaR(fatjet,genak8jet);
+	  if(drgen < 0.8) 
+	    genmatchedAK8 = 1;
+	}
 
-      //      if(j8_tau2[0]/j8_tau1[0] < 0.75)
       if(taut21ddt1 <= 0.75)
 	h1->Fill(j8_mass[0]);
       else
